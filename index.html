@@ -324,7 +324,8 @@ const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
-const APP_V = '2026-11-01c';   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
+const APP_V = '2026-11-08a';
+const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ (โดเมน github.io ใช้ร่วมกันทุก repo — กันไปหยิบ ID ของระบบอื่น)   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
 /** ป้ายท้ายจอ: รุ่นหน้าแอป + เปิดจากที่ไหน (กลุ่ม = กดเข้างานแล้วแจ้งกลุ่มเองได้) */
 function appFoot() {
   let t = '';
@@ -418,13 +419,13 @@ async function boot() {
     return fatal('ยังไม่ได้ใส่ API_URL ในไฟล์ index.html (ดูคู่มือติดตั้ง ขั้นที่ 9)');
   }
   if (!LIFF_ID || LIFF_ID.indexOf('__') === 0) {
-    try { LIFF_ID = localStorage.getItem('kp.liff') || ''; } catch (e) {}   // จำไว้ ไม่ต้องถามเซิร์ฟเวอร์ทุกครั้ง
+    try { LIFF_ID = localStorage.getItem(LK) || ''; } catch (e) {}   // จำไว้ ไม่ต้องถามเซิร์ฟเวอร์ทุกครั้ง
   }
   if (!LIFF_ID || LIFF_ID.indexOf('__') === 0) {
     try {
       const c = await (await fetch(API_URL + '?config=1')).json();
       LIFF_ID = c.liffId || '';
-      try { if (LIFF_ID) localStorage.setItem('kp.liff', LIFF_ID); } catch (e) {}
+      try { if (LIFF_ID) localStorage.setItem(LK, LIFF_ID); } catch (e) {}
     } catch (e) {
       return fatal('ติดต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจ API_URL ใน index.html และการ Deploy (คู่มือติดตั้ง ขั้นที่ 6 และ 9)');
     }
@@ -436,7 +437,7 @@ async function boot() {
     // LIFF ID ที่จำไว้/จากเซิร์ฟเวอร์ ไม่ตรงกับแอปที่เปิดอยู่จริง → ใช้ตัวที่เปิดจริง (ไม่งั้นส่งเข้ากลุ่มไม่ได้) · รีโหลดครั้งเดียว
     const openId = (liff.getContext() || {}).liffId;
     if (openId && openId !== LIFF_ID) {
-      try { localStorage.setItem('kp.liff', openId); } catch (e) {}
+      try { localStorage.setItem(LK, openId); } catch (e) {}
       let again = false;
       try { again = sessionStorage.getItem('kp.liffFix') === openId; sessionStorage.setItem('kp.liffFix', openId); } catch (e) { again = true; }
       if (!again) { location.reload(); return; }
@@ -444,7 +445,7 @@ async function boot() {
     idToken = liff.getIDToken();
     if (!idToken) return fatal('ไม่ได้รับ ID token — ต้องเปิด scope "openid" ในหน้า LIFF ของ LINE Developers');
   } catch (e) {
-    try { localStorage.removeItem('kp.liff'); } catch (x) {}   // LIFF ID ที่จำไว้อาจเก่า (สร้าง LIFF ใหม่) → เปิดใหม่จะถามเซิร์ฟเวอร์
+    try { localStorage.removeItem(LK); } catch (x) {}   // LIFF ID ที่จำไว้อาจเก่า (สร้าง LIFF ใหม่) → เปิดใหม่จะถามเซิร์ฟเวอร์
     return fatal('เปิด LIFF ไม่สำเร็จ: ' + e.message);
   }
   markReady();
