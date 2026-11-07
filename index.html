@@ -324,9 +324,9 @@ const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
-const APP_V = '2026-11-08b';
+const APP_V = '2026-11-08c';
 const KS = ':' + String(API_URL).slice(-24);   // ต่อท้ายคีย์ localStorage ทุกตัว กันชนกับระบบอื่นที่ใช้โดเมน github.io เดียวกัน
-const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ (โดเมน github.io ใช้ร่วมกันทุก repo — กันไปหยิบ ID ของระบบอื่น)   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
+const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
 /** ป้ายท้ายจอ: รุ่นหน้าแอป + เปิดจากที่ไหน (กลุ่ม = กดเข้างานแล้วแจ้งกลุ่มเองได้) */
 function appFoot() {
   let t = '';
@@ -1346,7 +1346,7 @@ async function loadBoss() {
 
 function renderBoss() {
   moreReset(tab + '/' + bossTab + '/' + bossOpen);
-  const subs = [['today', 'วันนี้']].concat(S.shift ? [['shift', 'ตารางกะ']] : [], [['leaves', 'ใบลา'], ['pay', 'จ่ายเงิน']]);
+  const subs = [['today', 'วันนี้']].concat(S.shift ? [['shift', 'ตารางกะ']] : [], [['leaves', 'ใบลา']], S.me.money === false ? [] : [['pay', 'จ่ายเงิน']]);
   if (bossTab === 'shift' && !S.shift) bossTab = 'today';
   if (S.me.owner) subs.push(['set', 'ตั้งค่า']);
   const r = bossCache[bossTab];
