@@ -324,7 +324,8 @@ const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
-const APP_V = '2026-11-08a';
+const APP_V = '2026-11-08b';
+const KS = ':' + String(API_URL).slice(-24);   // ต่อท้ายคีย์ localStorage ทุกตัว กันชนกับระบบอื่นที่ใช้โดเมน github.io เดียวกัน
 const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ (โดเมน github.io ใช้ร่วมกันทุก repo — กันไปหยิบ ID ของระบบอื่น)   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
 /** ป้ายท้ายจอ: รุ่นหน้าแอป + เปิดจากที่ไหน (กลุ่ม = กดเข้างานแล้วแจ้งกลุ่มเองได้) */
 function appFoot() {
@@ -359,11 +360,11 @@ function shopFromUrl() {
     const q = new URLSearchParams(location.search);
     let v = q.get('shop');
     if (!v && q.get('liff.state')) v = new URLSearchParams(String(q.get('liff.state')).replace(/^[^?]*\?/, '')).get('shop');
-    if (v) { localStorage.setItem('kp.shop', clean(v)); return clean(v); }
-    return clean(localStorage.getItem('kp.shop'));
+    if (v) { localStorage.setItem('kp.shop' + KS, clean(v)); return clean(v); }
+    return clean(localStorage.getItem('kp.shop' + KS));
   } catch (e) { return ''; }
 }
-function rememberShop(id) { SHOP = id || ''; try { if (SHOP) localStorage.setItem('kp.shop', SHOP); else localStorage.removeItem('kp.shop'); } catch (e) {} }
+function rememberShop(id) { SHOP = id || ''; try { if (SHOP) localStorage.setItem('kp.shop' + KS, SHOP); else localStorage.removeItem('kp.shop' + KS); } catch (e) {} }
 
 // ---------- น้องพร้อม: มาสคอต + คลังคำพูด (คำกลาง ใช้ได้ทุกร้าน) ----------
 const NONG_PROM = {
@@ -461,7 +462,7 @@ async function boot() {
 // ปุ่มกดได้เลย · คำขอที่กดก่อน LINE พร้อมจะรอ (เวลาที่แตะจดไว้แล้ว) แล้วค่อยส่ง
 let markReady = null;
 const ready = new Promise(r => { markReady = r; });
-function snapKey() { return 'kp.st:' + (SHOP || ''); }
+function snapKey() { return 'kp.st' + KS + ':' + (SHOP || ''); }
 function saveSnap(j) { try { if (SHOP && j && j.ok && j.registered) localStorage.setItem(snapKey(), JSON.stringify(j)); } catch (e) {} }
 function loadSnap() {
   try { const j = JSON.parse(localStorage.getItem(snapKey()) || 'null'); return j && j.ok && j.shopId === SHOP ? j : null; }
@@ -569,7 +570,7 @@ async function act(action, extra, optimistic) {
 }
 
 function pendingRid(action) {
-  const k = 'rid:' + action;
+  const k = 'rid' + KS + ':' + action;
   try {
     const p = JSON.parse(localStorage.getItem(k) || 'null');
     if (p && Date.now() - p.at < 10 * 60000) return p.rid;
@@ -578,7 +579,7 @@ function pendingRid(action) {
   try { localStorage.setItem(k, JSON.stringify({ rid, at: Date.now() })); } catch (e) {}
   return rid;
 }
-function clearPending(action) { try { localStorage.removeItem('rid:' + action); } catch (e) {} }
+function clearPending(action) { try { localStorage.removeItem('rid' + KS + ':' + action); } catch (e) {} }
 function anyBusy() { return Object.keys(busy).some(k => busy[k]); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -691,8 +692,8 @@ function wireLoc(p, onPick, setBusy) {
 
 // ---------- แจ้งในกลุ่ม (liff.sendMessages — ส่งในนามพนักงาน ไม่ใช่ push ของบอท) ----------
 let pendingShare = '', shareErr = '';   // shareErr = รหัสจาก LINE ครั้งล่าสุดที่ส่งไม่ผ่าน (FORBIDDEN = ยังไม่ติ๊ก chat_message.write)
-try { pendingShare = localStorage.getItem('pendingShare') || ''; } catch (e) {}
-function setPendingShare(t) { pendingShare = t || ''; try { localStorage.setItem('pendingShare', pendingShare); } catch (e) {} }
+try { pendingShare = localStorage.getItem('pendingShare' + KS) || ''; } catch (e) {}
+function setPendingShare(t) { pendingShare = t || ''; try { localStorage.setItem('pendingShare' + KS, pendingShare); } catch (e) {} }
 function inGroup() {
   try { const c = liff.getContext(); return !!c && (c.type === 'group' || c.type === 'room'); } catch (e) { return false; }
 }
@@ -1796,7 +1797,7 @@ function drawQr(el, text) {
 
 // ---------- โหมดแอดมิน (ผู้ให้บริการ): ร้านทั้งหมด · สร้างร้าน 4 ขั้น · จัดการพนักงาน ----------
 let adm = { view: 'home' }, admData = {};
-const WZ_KEY = 'kp.wizard';
+const WZ_KEY = 'kp.wizard' + KS;
 // ---------- รอบจ่ายเงิน + กะ (ใช้ร่วมกัน: wizard · ตั้งค่าเจ้าของ · หน้าร้านแอดมิน) ----------
 const CYCLES = [['ครึ่งเดือน', 'ครึ่งเดือน', 'แบบลาบรื่น'], ['เดือน', 'รายเดือน', 'เดือนละครั้ง'], ['สัปดาห์', 'รายสัปดาห์', 'ทุกสัปดาห์']];
 const DOW_ALL = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'], DOW_FULL = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
