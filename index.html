@@ -324,7 +324,7 @@ const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
-const APP_V = '2026-11-08c';
+const APP_V = '2026-11-10a';
 const KS = ':' + String(API_URL).slice(-24);   // ต่อท้ายคีย์ localStorage ทุกตัว กันชนกับระบบอื่นที่ใช้โดเมน github.io เดียวกัน
 const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
 /** ป้ายท้ายจอ: รุ่นหน้าแอป + เปิดจากที่ไหน (กลุ่ม = กดเข้างานแล้วแจ้งกลุ่มเองได้) */
@@ -1554,7 +1554,7 @@ function bossSetHtml(r) {
       ${[''].concat(r.branches.map(b => b.name)).map(b => `<option value="${esc(b)}" ${(e.branch || '') === b ? 'selected' : ''}>${esc(b || r.mainName)}</option>`).join('')}</select></div>` : ''}
     <div class="row" style="width:100%"><input type="number" id="w${i}" value="${e.wage}" style="width:110px"><span class="muted">บ./วัน</span>
       <button class="small-btn ghost" data-wage="${i}">บันทึก</button>
-      ${e.owner ? '' : `<button class="small-btn ${e.manager ? 'ghost' : ''}" data-role="${i}">${e.manager ? 'ถอดผู้จัดการ' : 'ตั้งเป็นผู้จัดการ'}</button>`}</div></div>`).join('');
+      ${e.owner ? '' : `<button class="small-btn ${e.manager ? 'ghost' : ''}" data-role="${i}">${e.manager ? 'ถอดผู้จัดการ' : 'ตั้งเป็นผู้จัดการ'}</button> <button class="small-btn ${e.acct ? 'ghost' : ''}" data-acct="${i}">${e.acct ? 'ถอดฝ่ายบัญชี' : 'ตั้งเป็นฝ่ายบัญชี'}</button>`}</div></div>`).join('');
   const gpsCard = `<div class="card"><h2>ตำแหน่งร้าน</h2>${r.hasGps ? '' : '<div class="note bad" style="margin:0 0 10px">ยังไม่ได้ตั้ง — พนักงานยังเข้างานไม่ได้</div>'}
       ${locBox('ol', r.gps || null, busy.gps)}</div>`;
   const link = S.liffLink || '';
@@ -1744,7 +1744,12 @@ function wireBoss(app) {
     });
     app.querySelectorAll('[data-role]').forEach(b => b.onclick = async () => {
       const e = r.emps[+b.dataset.role];
-      const res = await act('setRole', { name: e.name, manager: !e.manager }, () => { e.manager = !e.manager; });   // ป้ายสลับทันที
+      const res = await act('setRole', { name: e.name, role: e.manager ? '' : 'ผู้จัดการ' }, () => { e.manager = !e.manager; e.acct = false; });   // ป้ายสลับทันที
+      if (res && res.ok) refresh(); loadBoss();
+    });
+    app.querySelectorAll('[data-acct]').forEach(b => b.onclick = async () => {
+      const e = r.emps[+b.dataset.acct];
+      const res = await act('setRole', { name: e.name, role: e.acct ? '' : 'ฝ่ายบัญชี' }, () => { e.acct = !e.acct; e.manager = false; });
       if (res && res.ok) refresh(); loadBoss();
     });
     wireLoc('ol', async (lat, lng) => { const res = await act('setShopGps', { lat, lng }); if (res && res.ok) loadBoss(); else renderBoss(); },
@@ -2297,7 +2302,7 @@ function renderAdmShop(app) {
         <div class="row mrow"><span class="mlabel">ตำแหน่ง</span><input id="eD${i}" value="${esc(e.dept)}" style="width:130px" maxlength="20"><button class="small-btn" data-ed="${i}">บันทึก</button></div>
         ${deptPick('eD' + i, e.dept, depts)}
         ${r.shiftOn && String(e.role).indexOf('เจ้าของ') < 0 ? `<div class="row mrow"><span class="mlabel">กะประจำ</span><select id="eS${i}" style="width:130px">${r.shifts.map(x => `<option ${x.name === e.shift ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select><button class="small-btn" data-es="${i}">บันทึก</button></div>` : ''}
-        ${String(e.role).indexOf('เจ้าของ') >= 0 ? '' : `<div class="row mrow"><span class="mlabel">สิทธิ์ผู้จัดการ</span><button class="small-btn ${e.role === 'ผู้จัดการ' ? 'ghost' : ''}" data-er="${i}">${e.role === 'ผู้จัดการ' ? 'ถอดผู้จัดการ' : 'ตั้งเป็นผู้จัดการ'}</button></div>`}
+        ${String(e.role).indexOf('เจ้าของ') >= 0 ? '' : `<div class="row mrow"><span class="mlabel">สิทธิ์ผู้จัดการ</span><button class="small-btn ${e.role === 'ผู้จัดการ' ? 'ghost' : ''}" data-er="${i}">${e.role === 'ผู้จัดการ' ? 'ถอดผู้จัดการ' : 'ตั้งเป็นผู้จัดการ'}</button> <button class="small-btn ${e.role === 'ฝ่ายบัญชี' ? 'ghost' : ''}" data-ea="${i}">${e.role === 'ฝ่ายบัญชี' ? 'ถอดฝ่ายบัญชี' : 'ตั้งเป็นฝ่ายบัญชี'}</button></div>`}
         <div class="more">${moreBtn('ae', 'เพิ่มเติม')}</div>
         ${moreBox('ae', (e.bound ? `<div class="row mrow" style="margin-top:0"><span class="mlabel">ย้ายเครื่อง (ปลดเครื่องเดิม)</span><button class="small-btn red" data-eu="${i}">${armed === 'eu' + i ? 'แตะอีกครั้ง' : 'ปลด'}</button></div>` : '') +
           `<div class="row mrow"><span class="mlabel">${e.left ? 'กลับมาทำงาน' : 'ให้ออก (เก็บประวัติไว้)'}</span><button class="small-btn ${e.left ? '' : 'red'}" data-el="${i}">${armed === 'el' + i ? 'แตะอีกครั้ง' : e.left ? 'กลับมา' : 'ให้ออก'}</button></div>`)}
@@ -2345,7 +2350,8 @@ function renderAdmShop(app) {
     if (wage === '') return toast('ใส่เงินต่อวันด้วยนะ', 'bad');
     edit({ op: 'add', name, wage: +wage, dept: $('nDept').value.trim(), manager: $('nMgr').checked, shift: $('nShift') ? $('nShift').value : '' });
   };
-  app.querySelectorAll('[data-er]').forEach(b => b.onclick = () => { const e = r.staff[+b.dataset.er]; edit({ op: 'role', name: e.name, manager: e.role !== 'ผู้จัดการ' }, true); });
+  app.querySelectorAll('[data-er]').forEach(b => b.onclick = () => { const e = r.staff[+b.dataset.er]; edit({ op: 'role', name: e.name, role: e.role === 'ผู้จัดการ' ? '' : 'ผู้จัดการ' }, true); });
+  app.querySelectorAll('[data-ea]').forEach(b => b.onclick = () => { const e = r.staff[+b.dataset.ea]; edit({ op: 'role', name: e.name, role: e.role === 'ฝ่ายบัญชี' ? '' : 'ฝ่ายบัญชี' }, true); });
   const renew = async () => { const res = await act('adminSetShop', { shop: sh.id, renew: 1 }); if (res && res.ok) loadAdmin(); };
   if ($('sRenew')) $('sRenew').onclick = renew;
   if ($('sRenew2')) $('sRenew2').onclick = renew;
