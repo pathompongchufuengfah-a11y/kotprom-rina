@@ -324,7 +324,7 @@ const MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','ม�
 const MON_FULL = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 
 let S = null;            // สถานะล่าสุดจากเซิร์ฟเวอร์
-const APP_V = '2026-11-10a';
+const APP_V = '2026-11-10b';
 const KS = ':' + String(API_URL).slice(-24);   // ต่อท้ายคีย์ localStorage ทุกตัว กันชนกับระบบอื่นที่ใช้โดเมน github.io เดียวกัน
 const LK = 'kp.liff:' + String(API_URL).slice(-24);   // คีย์จำ LIFF ID แยกตามระบบ   // รุ่นหน้าแอป — ขึ้นท้ายจอ ไว้เช็คว่าอัปไฟล์ใหม่ขึ้น GitHub แล้วจริง (แก้ทุกครั้งที่ปล่อยรุ่นใหม่)
 /** ป้ายท้ายจอ: รุ่นหน้าแอป + เปิดจากที่ไหน (กลุ่ม = กดเข้างานแล้วแจ้งกลุ่มเองได้) */
@@ -720,6 +720,9 @@ async function shareToGroup(text, card, picked) {
     setPendingShare(''); shareErr = '';
   } catch (e) {
     setPendingShare(text);
+    if (liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')) {   // ส่งตรงไม่ได้ (เช่น Unexpected API name) → เปิดหน้าเลือกกลุ่มแทน
+      try { const r = await liff.shareTargetPicker([card || { type: 'text', text: text.slice(0, 4900) }]); if (r) { setPendingShare(''); shareErr = ''; toast('📣 ส่งแจ้งในกลุ่มแล้ว (ผ่านหน้าเลือกกลุ่ม)', 'ok'); return render(); } } catch (e2) { e = e2; }
+    }
     // บอกสาเหตุจริงจาก LINE ด้วย (เช่น ไม่ได้ติ๊ก chat_message.write) จะได้แก้ถูกจุด
     const why = lineErr(e);
     shareErr = why;
@@ -747,8 +750,13 @@ async function testShare() {
         await liff.sendMessages([{ type: 'text', text }]);
         toast('✅ ส่งเข้ากลุ่มได้ · กดเข้างานจริงก็จะเข้ากลุ่มแบบนี้', 'ok', 6000);
       } catch (e) {
+        let ok2 = false;
+        if (liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')) {
+          try { if (await liff.shareTargetPicker([{ type: 'text', text }])) { ok2 = true; toast('✅ ส่งผ่านหน้าเลือกกลุ่มได้ (ส่งตรงไม่ได้: ' + why(e) + ')', 'ok', 10000); } } catch (e2) { e = e2; }
+        }
+        if (ok2) return;
         const w = why(e);
-        toast('❌ ส่งเข้ากลุ่มไม่ได้' + (w ? ' (' + w + ')' : '') + (/FORBIDDEN|permission/i.test(w) ? '\n→ ติ๊ก chat_message.write ในหน้า LIFF' : ''), 'bad', 10000);
+        toast('❌ ส่งเข้ากลุ่มไม่ได้' + (w ? ' (' + w + ')' : '') + (/Unexpected API/i.test(w) ? ' → เช็ค LIFF ID ตรง LIFF_ID · ติ๊ก chat_message.write · Publish · เปิดจากปุ่มในกลุ่ม' : '') + (/FORBIDDEN|permission/i.test(w) ? '\n→ ติ๊ก chat_message.write ในหน้า LIFF' : ''), 'bad', 10000);
       }
     }
   } finally { busy.test = false; render(); }
